@@ -23,6 +23,7 @@ terraform {
 provider "humanitec" {
   org_id = var.humanitec_organization
   token  = var.humanitec_token
+  host   = "https://dev-api.humanitec.io/"
 }
 
 resource "humanitec_application" "app" {
@@ -79,8 +80,8 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
 
   criteria = [
     {
-      app_id = humanitec_application.app.id
-      res_id = "modules.${var.workload_name}.externals.${var.app_name}-policy"
+      # app_id = humanitec_application.app.id
+      res_id = "${var.app_name}-policy"
     }
   ]
 
@@ -94,7 +95,7 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
     values = {
       "source" = jsonencode(
         {
-          path = "iam-role-eks/terraform/policy/"
+          path = "iam-role-eks-v2/terraform/policy/"
           rev  = "refs/heads/iam-test"
           url  = "https://github.com/nickhumanitec/humanitec-aws-examples.git"
         }
@@ -102,12 +103,59 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
       "variables" = jsonencode(
         {
           region          = var.region
-          arn             = "$${resources.s3#modules.${var.workload_name}.externals.${var.app_name}-s3.outputs.arn}"
+          arn             = "arn:aws:s3:::mar7test-s3-mar7test-development"
           assume_role_arn = var.terraform_role
-          name            = "humanitec-${var.app_name}-policy"
+          policy_name     = "xx"
         }
       )
     }
   }
 
+}
+
+
+resource "humanitec_resource_definition" "workload" {
+  count = 1
+  id    = "${var.app_name}-workload"
+  name  = "${var.app_name}-workload"
+  type  = "workload"
+
+  criteria = [
+    {
+      app_id = humanitec_application.app.id
+      res_id = "modules.${var.workload_name}"
+    }
+  ]
+
+  driver_type = "humanitec/template"
+  driver_inputs = {
+    secrets = {
+      templates = jsonencode({
+        outputs = ""
+      })
+    },
+    values = {
+      templates = jsonencode({
+        cookie    = ""
+        init      = ""
+        manifests = <<EOL
+serviceaccount.yaml:
+  data:
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: $${context.app.id}-$${context.env.id}-${var.workload_name}
+      annotations:
+
+        x: $${resources.aws-policy#mar7test-policy.outputs.arn}
+        context: {{trimPrefix "modules." "$${context.res.id}"}}
+        fullContext: $${context.res.id}
+        app: $${context.app.id}
+        env: $${context.env.id}
+  location: namespace
+EOL
+        outputs   = ""
+      })
+    }
+  }
 }
