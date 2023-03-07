@@ -33,14 +33,14 @@ resource "humanitec_application" "app" {
 
 resource "humanitec_resource_definition" "aws_terraform_resource_s3_bucket" {
   driver_type = "${var.humanitec_organization}/terraform"
-  id          = "${var.app_name}-eks-iam-s3-bucket"
-  name        = "${var.app_name}-eks-iam-s3-bucket"
+  id          = "${var.app_name}-s3"
+  name        = "${var.app_name}-s3"
   type        = "s3"
 
   criteria = [
     {
       app_id = humanitec_application.app.id
-      res_id = "modules.${var.workload_name}.externals.${var.app_name}-eks-iam-s3-bucket"
+      res_id = "modules.${var.workload_name}.externals.${var.app_name}-s3"
     }
   ]
 
@@ -62,7 +62,7 @@ resource "humanitec_resource_definition" "aws_terraform_resource_s3_bucket" {
       "variables" = jsonencode(
         {
           region          = var.region
-          bucket          = "${var.app_name}-eks-iam-s3-bucket-$${context.app.id}-$${context.env.id}"
+          bucket          = "${var.app_name}-s3-$${context.app.id}-$${context.env.id}"
           assume_role_arn = var.terraform_role
         }
       )
@@ -73,14 +73,14 @@ resource "humanitec_resource_definition" "aws_terraform_resource_s3_bucket" {
 
 resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
   driver_type = "${var.humanitec_organization}/terraform"
-  id          = "${var.app_name}-eks-iam-policy"
-  name        = "${var.app_name}-eks-iam-policy"
+  id          = "${var.app_name}-policy"
+  name        = "${var.app_name}-policy"
   type        = "aws-policy"
 
   criteria = [
     {
       app_id = humanitec_application.app.id
-      res_id = "modules.${var.workload_name}.externals.${var.app_name}-eks-iam-policy"
+      res_id = "modules.${var.workload_name}.externals.${var.app_name}-policy"
     }
   ]
 
@@ -102,9 +102,9 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
       "variables" = jsonencode(
         {
           region          = var.region
-          parameter_arn   = "$${resources.s3#modules.${var.workload_name}.externals.${var.app_name}-eks-iam-s3-bucket.outputs.arn}"
+          arn             = "$${resources.s3#modules.${var.workload_name}.externals.${var.app_name}-s3.outputs.arn}"
           assume_role_arn = var.terraform_role
-          name            = "humanitec-testpolicy"
+          name            = "humanitec-${var.app_name}-policy"
         }
       )
     }

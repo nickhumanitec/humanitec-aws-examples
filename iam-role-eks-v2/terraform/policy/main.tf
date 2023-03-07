@@ -1,12 +1,9 @@
-variable "policy_name" {
-  default = "humanitec-"
-}
+variable "policy_name" {}
 
-variable "arn" {
-}
+variable "arn" {}
 
 resource "aws_iam_policy" "policy" {
-  name_prefix = var.policy_name
+  name = var.policy_name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
