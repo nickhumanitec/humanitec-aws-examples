@@ -1,22 +1,22 @@
-variable "policy_ssm_name" {
+variable "policy_name" {
   default = "humanitec-"
 }
 
-variable "parameter_arn" {
+variable "arn" {
 }
 
-resource "aws_iam_policy" "policy_ssm" {
-  name_prefix = var.policy_ssm_name
+resource "aws_iam_policy" "policy" {
+  name_prefix = var.policy_name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        "Sid" : "SSMGeneral",
+        "Sid" : "S3Admin",
         "Effect" : "Allow",
         "Action" : [
-          "ssm:GetParameter"
+          "s3:*"
         ],
-        "Resource" : "${var.parameter_arn}"
+        "Resource" : ["${var.arn}", "${var.arn}/*"]
       }
     ]
   })
@@ -26,19 +26,19 @@ resource "aws_iam_policy" "policy_ssm" {
 }
 
 output "arn" {
-  value = aws_iam_policy.policy_ssm.arn
+  value = aws_iam_policy.policy.arn
 }
 
-output "policy_ssm_arn" {
-  value = aws_iam_policy.policy_ssm.arn
+output "policy_arn" {
+  value = aws_iam_policy.policy.arn
 }
 
-output "policy_ssm_name" {
-  value = aws_iam_policy.policy_ssm.name
+output "policy_name" {
+  value = aws_iam_policy.policy.name
 }
 
-output "policy_ssm_id" {
-  value = aws_iam_policy.policy_ssm.policy_id
+output "policy_id" {
+  value = aws_iam_policy.policy.policy_id
 }
 
 // boilerplate for Humanitec terraform driver
