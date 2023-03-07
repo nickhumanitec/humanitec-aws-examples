@@ -1,6 +1,4 @@
-variable "role_name" {
-  default = "humanitec-"
-}
+variable "role_name" {}
 variable "policies" { type = set(string) }
 variable "cluster_oidc" {}
 variable "namespace" { default = "*" }
@@ -13,7 +11,7 @@ resource "aws_iam_role_policy_attachment" "policies" {
 }
 
 resource "aws_iam_role" "eks" {
-  name_prefix = var.role_name
+  name = var.role_name
   // below uses StringLike to allow wildcards for multiple service accounts within the same namespace for workloads
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17",
