@@ -62,7 +62,7 @@ resource "humanitec_resource_definition" "aws_terraform_resource_s3_bucket" {
       "variables" = jsonencode(
         {
           region          = var.region
-          bucket          = "mybucket-$${context.app.id}-$${context.env.id}"
+          bucket          = "${var.app_name}-eks-iam-s3-bucket-$${context.app.id}-$${context.env.id}"
           assume_role_arn = var.terraform_role
         }
       )
