@@ -41,7 +41,7 @@ resource "humanitec_resource_definition" "aws_terraform_resource_s3_bucket" {
   criteria = [
     {
       app_id = humanitec_application.app.id
-      res_id = "modules.${var.workload_name}.externals.${var.app_name}-s3"
+      # res_id = "modules.${var.workload_name}.externals.${var.app_name}-s3"
     }
   ]
 
@@ -80,10 +80,17 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
 
   criteria = [
     {
-      # app_id = humanitec_application.app.id
       res_id = "${var.app_name}-policy"
     }
   ]
+
+
+
+  # $${resources.s3#.mar7test-s3.outputs.bucket}
+
+  # $${resource['s3#mar7test-s3']outputs.bucket}
+
+
 
   driver_inputs = {
     secrets = {
@@ -103,15 +110,109 @@ resource "humanitec_resource_definition" "aws_terraform_resource_policy" {
       "variables" = jsonencode(
         {
           region          = var.region
-          arn             = "arn:aws:s3:::mar7test-s3-mar7test-development"
+          arnx            = "arn:aws:s3:::mar7test-s3-mar7test-development"
+          arn             = "arn:aws:s3:::$${resource['s3#externals.mar7test-s3'].outputs.bucket}"
           assume_role_arn = var.terraform_role
-          policy_name     = "xx"
+          policy_name     = "humanitec-${var.app_name}"
+
         }
       )
     }
   }
 
 }
+
+
+resource "humanitec_resource_definition" "aws_terraform_resource_role" {
+  driver_type = "${var.humanitec_organization}/terraform"
+  id          = "${var.app_name}-role"
+  name        = "${var.app_name}-role"
+  type        = "aws-role"
+
+  criteria = [
+    {
+      res_id = "${var.app_name}-role"
+    }
+  ]
+
+  driver_inputs = {
+    secrets = {
+      variables = jsonencode({
+        access_key = var.access_key
+        secret_key = var.secret_key
+      })
+    },
+    values = {
+      "source" = jsonencode(
+        {
+          path = "iam-role-eks-v2/terraform/role/"
+          rev  = "refs/heads/iam-test"
+          url  = "https://github.com/nickhumanitec/humanitec-aws-examples.git"
+        }
+      )
+      "variables" = jsonencode(
+        {
+          region          = var.region
+          policies        = ["$${resources.aws-policy#mar7test-policy.outputs.arn}"]
+          assume_role_arn = var.terraform_role
+          role_name       = "humanitec-${var.app_name}"
+          cluster_oidc    = var.cluster_oidc
+          namespace       = "*"
+          service_account = "*"
+
+        }
+      )
+    }
+  }
+
+}
+
+
+# {"id":"mysa","name":"mysa","type":"k8s-service-account","driver_inputs":{"values":{"name":"mysaname"}},"driver_type":"humanitec/static"}
+
+# resource "humanitec_resource_definition" "sa" {
+#   id          = "${var.app_name}-sa"
+#   name        = "${var.app_name}-sa"
+#   type        = "k8s-service-account"
+#   driver_type = "humanitec/template"
+
+#   criteria = [
+#     {
+#       # app_id = humanitec_application.app.id
+#       # res_id = "modules.${var.workload_name}"
+#       res_id = null
+#     }
+#   ]
+
+#   driver_inputs = {
+#     secrets = {
+#       templates = jsonencode({
+#         outputs = ""
+#       })
+#     },
+#     values = {
+#       templates = jsonencode({
+#         cookie    = ""
+#         init      = "name: $${context.app.id}-$${context.env.id}-${var.workload_name}"
+#         manifests = <<EOL
+# serviceaccount.yaml:
+#   data:
+#     apiVersion: v1
+#     kind: ServiceAccount
+#     metadata:
+#       name: {{ .init.name }}
+#       annotations:
+#         eks.amazonaws.com/role-arn: $${resources.aws-role#mar7test-role.outputs.arn}
+#         x-policy: $${resources.aws-policy#mar7test-policy.outputs.arn}
+#         x-role:  $${resources.aws-role#mar7test-role.outputs.arn}
+
+#   location: namespace
+# EOL
+#         outputs   = "name: {{ .init.name }}"
+#       })
+#     }
+#   }
+# }
 
 
 resource "humanitec_resource_definition" "workload" {
@@ -146,15 +247,14 @@ serviceaccount.yaml:
     metadata:
       name: $${context.app.id}-$${context.env.id}-${var.workload_name}
       annotations:
-
-        x: $${resources.aws-policy#mar7test-policy.outputs.arn}
-        context: {{trimPrefix "modules." "$${context.res.id}"}}
-        fullContext: $${context.res.id}
-        app: $${context.app.id}
-        env: $${context.env.id}
+        eks.amazonaws.com/role-arn: $${resources.aws-role#mar7test-role.outputs.arn}
+        x-policy: $${resources.aws-policy#mar7test-policy.outputs.arn}
+        x-role:  $${resources.aws-role#mar7test-role.outputs.arn}
   location: namespace
 EOL
-        outputs   = ""
+
+
+        outputs = ""
       })
     }
   }
